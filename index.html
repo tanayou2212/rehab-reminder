@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#0f6e56">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="リハビリ通知">
+<title>リハビリ通知</title>
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #f7f7f5;
+    --surface: #ffffff;
+    --border: rgba(0,0,0,0.1);
+    --text-primary: #1a1a18;
+    --text-secondary: #5f5e5a;
+    --accent: #0f6e56;
+    --accent-light: #e1f5ee;
+    --accent-mid: #1d9e75;
+    --warn: #ba7517;
+    --warn-light: #faeeda;
+    --radius-md: 8px;
+    --radius-lg: 12px;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1a1a18;
+      --surface: #2c2c2a;
+      --border: rgba(255,255,255,0.1);
+      --text-primary: #f1efe8;
+      --text-secondary: #b4b2a9;
+      --accent-light: #04342c;
+    }
+  }
+
+  body {
+    font-family: -apple-system, 'Hiragino Sans', 'Yu Gothic', sans-serif;
+    background: var(--bg);
+    color: var(--text-primary);
+    min-height: 100vh;
+    padding: 0 0 env(safe-area-inset-bottom);
+  }
+
+  header {
+    background: var(--surface);
+    border-bottom: 0.5px solid var(--border);
+    padding: 1.25rem 1.25rem 1rem;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+
+  .header-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .app-title {
+    font-size: 17px;
+    font-weight: 500;
+    color: var(--text-primary);
+  }
+
+  .status-badge {
+    font-size: 12px;
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-weight: 500;
+  }
+
+  .status-badge.active {
+    background: var(--accent-light);
+    color: var(--accent);
+  }
+
+  .status-badge.inactive {
+    background: var(--warn-light);
+    color: var(--warn);
+  }
+
+  .next-notify {
+    font-size: 13px;
+    color: var(--text-secondary);
+    margin-top: 6px;
+  }
+
+  main {
+    padding: 1.25rem;
+    max-width: 480px;
+    margin: 0 auto;
+  }
+
+  .section-label {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    margin: 1.5rem 0 0.75rem;
+  }
+
+  .exercise-card {
+    background: var(--surface);
+    border: 0.5px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 1rem 1.25rem;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+
+  .exercise-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: var(--radius-md);
+    background: var(--accent-light);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    flex-shrink: 0;
+  }
+
+  .exercise-info { flex: 1; }
+
+  .exercise-name {
+    font-size: 15px;
+    font-weight: 500;
+    color: var(--text-primary);
+    margin-bottom: 3px;
+  }
+
+  .exercise-desc {
+    font-size: 13px;
+    color: var(--text-secondary);
+  }
+
+  .done-btn {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    border: 1.5px solid var(--border);
+    background: transparent;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    transition: all 0.15s;
+    flex-shrink: 0;
+    color: var(--text-secondary);
+  }
+
+  .done-btn.checked {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: white;
+  }
+
+  .time-card {
+    background: var(--surface);
+    border: 0.5px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 1rem 1.25rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .time-label {
+    font-size: 14px;
+    color: var(--text-secondary);
+    margin-bottom: 4px;
+  }
+
+  .time-value {
+    font-size: 28px;
+    font-weight: 500;
+    color: var(--text-primary);
+    letter-spacing: -0.5px;
+  }
+
+  input[type="time"] {
+    font-size: 22px;
+    font-weight: 500;
+    border: none;
+    background: transparent;
+    color: var(--text-primary);
+    cursor: pointer;
+    font-family: inherit;
+    padding: 0;
+    outline: none;
+  }
+
+  .toggle-wrap {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .toggle-label {
+    font-size: 14px;
+    color: var(--text-secondary);
+  }
+
+  .toggle {
+    position: relative;
+    width: 44px;
+    height: 26px;
+  }
+
+  .toggle input { opacity: 0; width: 0; height: 0; }
+
+  .toggle-slider {
+    position: absolute;
+    inset: 0;
+    background: var(--border);
+    border-radius: 13px;
+    cursor: pointer;
+    transition: 0.2s;
+    border: 0.5px solid var(--border);
+  }
+
+  .toggle-slider::before {
+    content: '';
+    position: absolute;
+    width: 20px;
+    height: 20px;
+    left: 3px;
+    top: 3px;
+    background: white;
+    border-radius: 50%;
+    transition: 0.2s;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+  }
+
+  .toggle input:checked + .toggle-slider { background: var(--accent); }
+  .toggle input:checked + .toggle-slider::before { transform: translateX(18px); }
+
+  .perm-btn {
+    width: 100%;
+    padding: 14px;
+    border-radius: var(--radius-lg);
+    border: 0.5px solid var(--border);
+    background: var(--accent);
+    color: white;
+    font-size: 15px;
+    font-weight: 500;
+    cursor: pointer;
+    font-family: inherit;
+    transition: opacity 0.15s;
+  }
+
+  .perm-btn:active { opacity: 0.8; }
+  .perm-btn.granted { background: var(--accent-light); color: var(--accent); pointer-events: none; }
+
+  .streak-row {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  .metric-card {
+    background: var(--surface);
+    border: 0.5px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 1rem;
+  }
+
+  .metric-label {
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin-bottom: 6px;
+  }
+
+  .metric-value {
+    font-size: 24px;
+    font-weight: 500;
+    color: var(--text-primary);
+  }
+
+  .metric-unit {
+    font-size: 14px;
+    color: var(--text-secondary);
+    margin-left: 2px;
+  }
+
+  .perm-notice {
+    background: var(--warn-light);
+    border: 0.5px solid rgba(186,117,23,0.2);
+    border-radius: var(--radius-md);
+    padding: 0.75rem 1rem;
+    font-size: 13px;
+    color: var(--warn);
+    margin-bottom: 1rem;
+    display: none;
+  }
+
+  .reset-btn {
+    background: transparent;
+    border: none;
+    font-size: 13px;
+    color: var(--text-secondary);
+    cursor: pointer;
+    text-decoration: underline;
+    padding: 0;
+    font-family: inherit;
+    margin-top: 1rem;
+    display: block;
+    width: 100%;
+    text-align: center;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-row">
+    <span class="app-title">リハビリ通知</span>
+    <span class="status-badge" id="statusBadge">確認中…</span>
+  </div>
+  <div class="next-notify" id="nextNotify">通知設定を読み込んでいます</div>
+</header>
+
+<main>
+  <div class="perm-notice" id="permNotice">
+    ブラウザの通知が許可されていません。下のボタンから許可してください。
+  </div>
+
+  <p class="section-label">通知許可</p>
+  <button class="perm-btn" id="permBtn" onclick="requestPermission()">通知を許可する</button>
+
+  <p class="section-label">通知時刻</p>
+  <div class="time-card">
+    <div>
+      <div class="time-label">毎日の通知時刻</div>
+      <input type="time" id="timeInput" value="22:00" onchange="saveSettings()">
+    </div>
+    <div class="toggle-wrap">
+      <span class="toggle-label">有効</span>
+      <label class="toggle">
+        <input type="checkbox" id="enableToggle" onchange="saveSettings()" checked>
+        <span class="toggle-slider"></span>
+      </label>
+    </div>
+  </div>
+
+  <p class="section-label">今日の種目</p>
+  <div id="exerciseList"></div>
+
+  <p class="section-label">記録</p>
+  <div class="streak-row">
+    <div class="metric-card">
+      <div class="metric-label">連続実施日数</div>
+      <div class="metric-value" id="streakVal">—<span class="metric-unit">日</span></div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-label">今日の完了数</div>
+      <div class="metric-value" id="doneVal">—<span class="metric-unit">/4</span></div>
+    </div>
+  </div>
+
+  <button class="reset-btn" onclick="resetToday()">今日のチェックをリセット</button>
+</main>
+
+<script>
+const EXERCISES = [
+  { id: 'hamstring', name: 'もも裏ストレッチ', desc: '膝裏の筋肉を伸ばす・ほぐす', icon: '🦵' },
+  { id: 'core-va',   name: 'コアレベルVA',     desc: 'インナーマッスルを鍛える',   icon: '💪' },
+  { id: 'cross-ext', name: '四つ這いクロスエクステンション', desc: '体幹を鍛える',  icon: '🧘' },
+  { id: 'lat-pull',  name: 'ラットプルダウン', desc: '僧帽筋強化・背筋の安定化',   icon: '🏋️' },
+];
+
+function getState() {
+  try { return JSON.parse(localStorage.getItem('rehab_state') || '{}'); } catch { return {}; }
+}
+
+function saveState(s) {
+  localStorage.setItem('rehab_state', JSON.stringify(s));
+}
+
+function todayKey() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function renderExercises() {
+  const state = getState();
+  const today = todayKey();
+  const checked = state.checked?.[today] || [];
+  const list = document.getElementById('exerciseList');
+  list.innerHTML = '';
+  EXERCISES.forEach(ex => {
+    const isDone = checked.includes(ex.id);
+    const card = document.createElement('div');
+    card.className = 'exercise-card';
+    card.innerHTML = `
+      <div class="exercise-icon">${ex.icon}</div>
+      <div class="exercise-info">
+        <div class="exercise-name">${ex.name}</div>
+        <div class="exercise-desc">${ex.desc}</div>
+      </div>
+      <button class="done-btn ${isDone ? 'checked' : ''}" onclick="toggleDone('${ex.id}')" aria-label="${isDone ? '完了済み' : '完了にする'}">
+        ${isDone ? '✓' : ''}
+      </button>`;
+    list.appendChild(card);
+  });
+  updateMetrics();
+}
+
+function toggleDone(id) {
+  const state = getState();
+  const today = todayKey();
+  if (!state.checked) state.checked = {};
+  if (!state.checked[today]) state.checked[today] = [];
+  const arr = state.checked[today];
+  const idx = arr.indexOf(id);
+  if (idx === -1) arr.push(id); else arr.splice(idx, 1);
+  saveState(state);
+  renderExercises();
+  updateStreak();
+}
+
+function resetToday() {
+  const state = getState();
+  const today = todayKey();
+  if (state.checked) delete state.checked[today];
+  saveState(state);
+  renderExercises();
+  updateStreak();
+}
+
+function updateMetrics() {
+  const state = getState();
+  const today = todayKey();
+  const done = (state.checked?.[today] || []).length;
+  document.getElementById('doneVal').innerHTML = `${done}<span class="metric-unit">/4</span>`;
+}
+
+function updateStreak() {
+  const state = getState();
+  const checked = state.checked || {};
+  let streak = 0;
+  const d = new Date();
+  while (true) {
+    const key = d.toISOString().slice(0, 10);
+    if ((checked[key] || []).length === EXERCISES.length) {
+      streak++;
+      d.setDate(d.getDate() - 1);
+    } else break;
+  }
+  document.getElementById('streakVal').innerHTML = `${streak}<span class="metric-unit">日</span>`;
+}
+
+function saveSettings() {
+  const state = getState();
+  state.notifyTime = document.getElementById('timeInput').value;
+  state.enabled = document.getElementById('enableToggle').checked;
+  saveState(state);
+  scheduleNotification();
+  updateHeader();
+}
+
+function loadSettings() {
+  const state = getState();
+  if (state.notifyTime) document.getElementById('timeInput').value = state.notifyTime;
+  if (state.enabled !== undefined) document.getElementById('enableToggle').checked = state.enabled;
+}
+
+function updateHeader() {
+  const state = getState();
+  const badge = document.getElementById('statusBadge');
+  const next = document.getElementById('nextNotify');
+  const enabled = state.enabled !== false;
+  const perm = Notification.permission;
+
+  if (!enabled || perm !== 'granted') {
+    badge.className = 'status-badge inactive';
+    badge.textContent = enabled ? '通知オフ' : 'オフ';
+    next.textContent = enabled ? 'ブラウザの通知許可が必要です' : '通知は無効です';
+    return;
+  }
+
+  badge.className = 'status-badge active';
+  badge.textContent = '通知オン';
+  const [h, m] = (state.notifyTime || '22:00').split(':');
+  next.textContent = `毎日 ${h}:${m} に通知します`;
+}
+
+async function requestPermission() {
+  const result = await Notification.requestPermission();
+  const btn = document.getElementById('permBtn');
+  const notice = document.getElementById('permNotice');
+  if (result === 'granted') {
+    btn.textContent = '通知が許可されています ✓';
+    btn.className = 'perm-btn granted';
+    notice.style.display = 'none';
+    scheduleNotification();
+    new Notification('リハビリ通知', {
+      body: 'テスト通知です。設定が完了しました！',
+      icon: 'icons/icon-192.png'
+    });
+  } else {
+    notice.style.display = 'block';
+  }
+  updateHeader();
+}
+
+function scheduleNotification() {
+  if (Notification.permission !== 'granted') return;
+  const state = getState();
+  if (state.enabled === false) return;
+
+  const [h, m] = (state.notifyTime || '22:00').split(':').map(Number);
+  const now = new Date();
+  const target = new Date();
+  target.setHours(h, m, 0, 0);
+  if (target <= now) target.setDate(target.getDate() + 1);
+
+  const delay = target - now;
+
+  if (window._notifyTimer) clearTimeout(window._notifyTimer);
+  window._notifyTimer = setTimeout(() => {
+    const state = getState();
+    const today = todayKey();
+    const done = (state.checked?.[today] || []).length;
+    const remaining = EXERCISES.length - done;
+    new Notification('リハビリの時間です 🏃', {
+      body: remaining > 0
+        ? `今日の種目が ${remaining} つ残っています。腰のために頑張ろう！`
+        : '今日の種目は全部完了！お疲れさまでした。',
+      icon: 'icons/icon-192.png',
+      badge: 'icons/icon-192.png',
+    });
+    scheduleNotification();
+  }, delay);
+}
+
+function initPermUI() {
+  const btn = document.getElementById('permBtn');
+  const notice = document.getElementById('permNotice');
+  if (Notification.permission === 'granted') {
+    btn.textContent = '通知が許可されています ✓';
+    btn.className = 'perm-btn granted';
+  } else if (Notification.permission === 'denied') {
+    notice.style.display = 'block';
+    notice.textContent = '通知がブロックされています。ブラウザの設定から許可してください。';
+  }
+}
+
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js').catch(() => {});
+}
+
+loadSettings();
+initPermUI();
+renderExercises();
+updateStreak();
+updateHeader();
+scheduleNotification();
+</script>
+</body>
+</html>
